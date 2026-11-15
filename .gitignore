@@ -1,0 +1,6 @@
+# The hand-in's own output: main.ts writes game/, screenshots/ and dossier.json here, and the
+# grader makes them again in /output, so nothing under these is committed.
+out/
+out1/
+out2/
+node_modules/
