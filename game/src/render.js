@@ -613,7 +613,8 @@ export class Renderer {
     }
   }
 
-  /** The controls, grouped in one panel, so the title screen teaches the game at a glance. */
+  /** The controls, grouped in one panel, so the title screen teaches the game at a glance. The
+      groups are measured before they are drawn, so no divider can ever land on a word. */
   drawControlsPanel() {
     const { ctx } = this;
     const keys = [
@@ -622,7 +623,21 @@ export class Renderer {
       ['R', 'restart the night'],
       ['M', 'mute'],
     ];
-    const width = 784;
+    const keySize = 17;
+    const actionSize = 16;
+    const between = 12;
+    const gap = 34;
+    const widths = keys.map(([key, action]) => {
+      ctx.save();
+      ctx.font = `700 ${keySize}px ${SANS}`;
+      const keyWidth = ctx.measureText(key).width;
+      ctx.font = `600 ${actionSize}px ${SANS}`;
+      const actionWidth = ctx.measureText(action).width;
+      ctx.restore();
+      return { keyWidth, actionWidth, total: keyWidth + between + actionWidth };
+    });
+    const inner = widths.reduce((sum, item) => sum + item.total, 0) + gap * (keys.length - 1);
+    const width = inner + 56;
     const height = 50;
     const x = STAGE.width / 2 - width / 2;
     const y = 710;
@@ -635,21 +650,30 @@ export class Renderer {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
-    const step = width / keys.length;
+    let cursor = x + 28;
     for (let i = 0; i < keys.length; i += 1) {
-      const centre = x + step * (i + 0.5);
       if (i > 0) {
         ctx.save();
         ctx.strokeStyle = this.alpha(PALETTE.slate, 0.45);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x + step * i, y + 10);
-        ctx.lineTo(x + step * i, y + height - 10);
+        ctx.moveTo(cursor - gap / 2, y + 10);
+        ctx.lineTo(cursor - gap / 2, y + height - 10);
         ctx.stroke();
         ctx.restore();
       }
-      this.text(keys[i][0], centre - 11, y + 31, { size: 17, color: PALETTE.bone, align: 'right', weight: '700' });
-      this.text(keys[i][1], centre + 11, y + 31, { size: 16, color: PALETTE.tide, align: 'left' });
+      this.text(keys[i][0], cursor + widths[i].keyWidth, y + 31, {
+        size: keySize,
+        color: PALETTE.bone,
+        align: 'right',
+        weight: '700',
+      });
+      this.text(keys[i][1], cursor + widths[i].keyWidth + between, y + 31, {
+        size: actionSize,
+        color: PALETTE.tide,
+        align: 'left',
+      });
+      cursor += widths[i].total + gap;
     }
   }
 
