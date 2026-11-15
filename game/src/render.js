@@ -465,14 +465,15 @@ export class Renderer {
       weight: '700',
     });
     // The chain is the game's own scoring rule made visible: each lantern lit after the first is
-    // worth more, so a night going well shows the multiplier it is actually paying at.
+    // worth more, so a night going well shows the multiplier it is actually paying at. It sits
+    // under the lantern row, inside the card (measured: the row is 38 px a lantern at y=80).
     if (lit >= 2) {
-      this.text(`CHAIN x${lit}`, STAGE.width / 2 - rowWidth / 2 - 44, 90, {
-        size: 22,
+      this.text(`CHAIN x${lit}`, STAGE.width / 2, 124, {
+        size: 20,
         color: PALETTE.amber,
-        align: 'right',
+        align: 'center',
         weight: '700',
-        tracking: 1.4,
+        tracking: 2,
       });
     }
 
