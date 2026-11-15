@@ -330,6 +330,8 @@ export class Renderer {
 
     const mothLight = this.mothLight(world, moth);
     this.light(moth.x, moth.y, mothLight, PALETTE.amber, moth.recovering ? 0.16 : 0.34);
+    // A tight halo on the moth itself, so the player is findable when the sheet is read small.
+    this.light(moth.x, moth.y, MOTH.radius * 4.6, PALETTE.bone, moth.recovering ? 0.1 : 0.18);
     for (const lantern of world.lanterns) {
       if (lantern.lit) this.light(lantern.x, lantern.y - 4, lantern.reach, PALETTE.amber, 0.42);
       // A lantern still cold keeps a dim pool of its own blue, so it can be seen across the dark.
@@ -395,9 +397,10 @@ export class Renderer {
     for (const pop of world.pops) {
       const fade = 1 - pop.age / 1.1;
       this.text(`+${pop.value}`, pop.x, pop.y - 26 - pop.age * 22, {
-        size: 20,
+        size: 26,
         color: PALETTE.amber,
         align: 'center',
+        weight: '700',
         alpha: fade,
       });
     }
@@ -426,7 +429,7 @@ export class Renderer {
     this.text(String(world.score), 44, 90, { size: 42, color: PALETTE.bone, font: SERIF, weight: '700' });
     this.text(`BEST ${best}`, 258, 90, { size: 15, color: this.alpha(PALETTE.bone, 0.6), align: 'right' });
 
-    card(STAGE.width / 2 - 180, 20, 360, 84);
+    card(STAGE.width / 2 - 180, 20, 360, 112);
     this.text('LANTERNS', STAGE.width / 2, 44, {
       size: 14,
       color: PALETTE.tide,
@@ -455,11 +458,23 @@ export class Renderer {
       ctx.stroke();
       ctx.restore();
     }
-    this.text(`${lit} / ${total}`, STAGE.width / 2 + rowWidth / 2 + 40, 88, {
-      size: 17,
-      color: this.alpha(PALETTE.bone, 0.85),
+    this.text(`${lit} / ${total}`, STAGE.width / 2 + rowWidth / 2 + 44, 90, {
+      size: 22,
+      color: this.alpha(PALETTE.bone, 0.95),
       align: 'left',
+      weight: '700',
     });
+    // The chain is the game's own scoring rule made visible: each lantern lit after the first is
+    // worth more, so a night going well shows the multiplier it is actually paying at.
+    if (lit >= 2) {
+      this.text(`CHAIN x${lit}`, STAGE.width / 2 - rowWidth / 2 - 44, 90, {
+        size: 22,
+        color: PALETTE.amber,
+        align: 'right',
+        weight: '700',
+        tracking: 1.4,
+      });
+    }
 
     card(STAGE.width - 330, 20, 306, 84);
     this.text('WING', STAGE.width - 312, 46, { size: 14, color: PALETTE.tide, weight: '700', tracking: 2.6 });
@@ -598,6 +613,46 @@ export class Renderer {
     }
   }
 
+  /** The controls, grouped in one panel, so the title screen teaches the game at a glance. */
+  drawControlsPanel() {
+    const { ctx } = this;
+    const keys = [
+      ['MOUSE', 'fly the moth'],
+      ['P', 'pause'],
+      ['R', 'restart the night'],
+      ['M', 'mute'],
+    ];
+    const width = 784;
+    const height = 50;
+    const x = STAGE.width / 2 - width / 2;
+    const y = 710;
+    ctx.save();
+    ctx.fillStyle = this.alpha(PALETTE.ink, 0.74);
+    ctx.strokeStyle = this.alpha(PALETTE.slate, 0.5);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, 10);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    const step = width / keys.length;
+    for (let i = 0; i < keys.length; i += 1) {
+      const centre = x + step * (i + 0.5);
+      if (i > 0) {
+        ctx.save();
+        ctx.strokeStyle = this.alpha(PALETTE.slate, 0.45);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + step * i, y + 10);
+        ctx.lineTo(x + step * i, y + height - 10);
+        ctx.stroke();
+        ctx.restore();
+      }
+      this.text(keys[i][0], centre - 11, y + 31, { size: 17, color: PALETTE.bone, align: 'right', weight: '700' });
+      this.text(keys[i][1], centre + 11, y + 31, { size: 16, color: PALETTE.tide, align: 'left' });
+    }
+  }
+
   drawTitle(best, hint) {
     this.overlay(PALETTE.ink, 0.5);
     this.drawTitleRing(5);
@@ -622,24 +677,30 @@ export class Renderer {
       color: this.alpha(PALETTE.bone, 0.6),
       align: 'right',
     });
-    this.text('You are a moth in a night that will not lift. Light every lantern in the dark to bring', STAGE.width / 2, 648, {
-      size: 19,
-      color: this.alpha(PALETTE.bone, 0.86),
+    // The goal first and large: the cover is read at thumbnail size, so the one line that says what
+    // to do is the biggest thing under the title. The rules follow it, then the controls as a panel.
+    this.text('LIGHT EVERY LANTERN BEFORE DAWN', STAGE.width / 2, 618, {
+      size: 32,
+      color: PALETTE.amber,
+      align: 'center',
+      font: SERIF,
+      weight: '700',
+      tracking: 4,
+    });
+    this.text('You are a moth in a night that will not lift. Every lantern you light wakes a bat,', STAGE.width / 2, 662, {
+      size: 20,
+      color: this.alpha(PALETTE.bone, 0.88),
       align: 'center',
     });
-    this.text('the night down. A candle burns a wing, and a bat wakes with every lantern you light.', STAGE.width / 2, 676, {
-      size: 19,
-      color: this.alpha(PALETTE.bone, 0.86),
+    this.text('and a candle burns a wing. Three nights stand between you and the dawn.', STAGE.width / 2, 688, {
+      size: 20,
+      color: this.alpha(PALETTE.bone, 0.88),
       align: 'center',
     });
-    this.text('Fly with the mouse.  P pauses, R restarts, M mutes.  Three nights stand before dawn.', STAGE.width / 2, 712, {
-      size: 16,
-      color: PALETTE.tide,
-      align: 'center',
-    });
+    this.drawControlsPanel();
     if (hint) {
       const pulse = 0.6 + 0.4 * Math.abs(Math.sin(performance.now() / 620));
-      this.text('Click or press Enter to begin', STAGE.width / 2, 764, {
+      this.text('Click or press Enter to begin', STAGE.width / 2, 782, {
         size: 23,
         color: PALETTE.bone,
         align: 'center',
